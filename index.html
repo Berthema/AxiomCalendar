@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Family Holiday Booking Calendar</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
   <style>
     body { font-family: Arial, sans-serif; margin: 20px; background: #f0f4f8; }
     h1, h2 { text-align: center; }
@@ -61,14 +63,34 @@
 <div class="booking-list" id="bookingList"></div>
 
 <script>
-  let currentDate = new Date();
+  const firebaseConfig = {
+    apiKey: "AIzaSyBjowLVseRmsBSxgGl3co1NX7xeaUaBIR0",
+    authDomain: "axiom-8a0ad.firebaseapp.com",
+    projectId: "axiom-8a0ad",
+    storageBucket: "axiom-8a0ad.firebasestorage.app",
+    messagingSenderId: "351683358183",
+    appId: "1:351683358183:web:d6c375571501e8650fe142"
 
-  function getBookings() {
-    return JSON.parse(localStorage.getItem('bookings') || '[]');
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  let currentDate = new Date();
+  let bookings = [];
+
+  function fetchBookings() {
+    db.collection("bookings").onSnapshot(snapshot => {
+      bookings = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      renderCalendar();
+    });
   }
 
-  function saveBookings(bookings) {
-    localStorage.setItem('bookings', JSON.stringify(bookings));
+  function addBooking(booking) {
+    db.collection("bookings").add(booking);
+  }
+
+  function deleteBooking(id) {
+    db.collection("bookings").doc(id).delete();
   }
 
   function hashColor(name) {
@@ -80,7 +102,6 @@
   function renderCalendar() {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
-    const bookings = getBookings();
 
     document.getElementById('calendar').innerHTML = `<h2>${currentDate.toLocaleString('default', { month: 'long' })} ${year}</h2>`;
     const grid = document.createElement('div');
@@ -103,21 +124,8 @@
   }
 
   function renderBookingList() {
-    const bookings = getBookings();
     const list = document.getElementById('bookingList');
-    list.innerHTML = bookings.map((b, i) => `<div class="booking-item">${b.name}: ${b.startDate} to ${b.endDate} <button class="delete-btn" onclick="deleteBooking(${i})">Delete</button></div>`).join('');
-  }
-
-  function deleteBooking(index) {
-    const bookings = getBookings();
-    bookings.splice(index, 1);
-    saveBookings(bookings);
-    renderCalendar();
-  }
-
-  function changeMonth(offset) {
-    currentDate.setMonth(currentDate.getMonth() + offset);
-    renderCalendar();
+    list.innerHTML = bookings.map(b => `<div class="booking-item">${b.name}: ${b.startDate} to ${b.endDate} <button class="delete-btn" onclick="deleteBooking('${b.id}')">Delete</button></div>`).join('');
   }
 
   document.getElementById('bookingForm').addEventListener('submit', (e) => {
@@ -126,21 +134,16 @@
     const startDate = document.getElementById('startDate').value;
     const endDate = document.getElementById('endDate').value;
 
-    const bookings = getBookings();
-    for (const b of bookings) {
-      if (!(new Date(endDate) < new Date(b.startDate) || new Date(startDate) > new Date(b.endDate))) {
-        alert(`Overlap with ${b.name}'s booking.`);
-        return;
-      }
+    if (bookings.some(b => !(new Date(endDate) < new Date(b.startDate) || new Date(startDate) > new Date(b.endDate)))) {
+      alert('Overlap detected.');
+      return;
     }
 
-    bookings.push({ name, startDate, endDate });
-    saveBookings(bookings);
+    addBooking({ name, startDate, endDate });
     e.target.reset();
-    renderCalendar();
   });
 
-  renderCalendar();
+  fetchBookings();
 </script>
 
 </body>
