@@ -84,6 +84,11 @@
     });
   }
 
+  function changeMonth(direction) {
+  currentDate.setMonth(currentDate.getMonth() + direction);
+  renderCalendar();
+}
+
   function addBooking(booking) {
     db.collection("bookings").add(booking);
   }
