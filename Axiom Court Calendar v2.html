@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Family Holiday Booking Calendar</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; background: #f0f4f8; }
+    h1, h2 { text-align: center; }
+    form, .booking-list, .calendar { max-width: 800px; margin: 20px auto; padding: 20px; background: white; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+    input, button { width: 100%; padding: 10px; margin: 8px 0; border-radius: 4px; border: 1px solid #ccc; }
+    button { background: #007bff; color: white; border: none; cursor: pointer; }
+    button:hover { background: #0056b3; }
+    .calendar-controls { text-align: center; margin: 10px 0; }
+    .day { padding: 10px; background: #e9ecef; border-radius: 4px; min-height: 80px; position: relative; }
+    .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-top: 20px; }
+    .date { font-weight: bold; }
+    .booked { padding: 2px 5px; border-radius: 3px; margin-top: 5px; display: block; color: white; }
+    .booking-item { padding: 10px; border-bottom: 1px solid #ddd; }
+    .delete-btn { background: #dc3545; color: white; padding: 5px 10px; border: none; border-radius: 4px; cursor: pointer; }
+  </style>
+</head>
+<body>
+
+<h1>Flat 3 Axiom Court 2 Booking Calendar</h1>
+
+<form id="bookingForm">
+  <input type="text" id="name" placeholder="Your Name" required>
+  <input type="date" id="startDate" required>
+  <input type="date" id="endDate" required>
+  <button type="submit">Add Booking</button>
+</form>
+
+<div class="calendar-controls">
+  <button onclick="changeMonth(-1)">Previous Month</button>
+  <button onclick="changeMonth(1)">Next Month</button>
+</div>
+
+<div class="calendar" id="calendar"></div>
+
+<h2>Bookings</h2>
+<div class="booking-list" id="bookingList"></div>
+
+<script>
+  let currentDate = new Date();
+
+  function getBookings() {
+    return JSON.parse(localStorage.getItem('bookings') || '[]');
+  }
+
+  function saveBookings(bookings) {
+    localStorage.setItem('bookings', JSON.stringify(bookings));
+  }
+
+  function hashColor(name) {
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    return `hsl(${hash % 360}, 70%, 60%)`;
+  }
+
+  function renderCalendar() {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    const bookings = getBookings();
+
+    document.getElementById('calendar').innerHTML = `<h2>${currentDate.toLocaleString('default', { month: 'long' })} ${year}</h2>`;
+    const grid = document.createElement('div');
+    grid.className = 'calendar-grid';
+
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    for (let i = 0; i < firstDay; i++) grid.innerHTML += '<div></div>';
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const dayBookings = bookings.filter(b => new Date(b.startDate) <= new Date(dateStr) && new Date(b.endDate) >= new Date(dateStr));
+
+      grid.innerHTML += `<div class="day"><div class="date">${day}</div>${dayBookings.map(b => `<span class="booked" style="background:${hashColor(b.name)}">${b.name}</span>`).join('')}</div>`;
+    }
+
+    document.getElementById('calendar').appendChild(grid);
+    renderBookingList();
+  }
+
+  function renderBookingList() {
+    const bookings = getBookings();
+    const list = document.getElementById('bookingList');
+    list.innerHTML = bookings.map((b, i) => `<div class="booking-item">${b.name}: ${b.startDate} to ${b.endDate} <button class="delete-btn" onclick="deleteBooking(${i})">Delete</button></div>`).join('');
+  }
+
+  function deleteBooking(index) {
+    const bookings = getBookings();
+    bookings.splice(index, 1);
+    saveBookings(bookings);
+    renderCalendar();
+  }
+
+  function changeMonth(offset) {
+    currentDate.setMonth(currentDate.getMonth() + offset);
+    renderCalendar();
+  }
+
+  document.getElementById('bookingForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const name = document.getElementById('name').value;
+    const startDate = document.getElementById('startDate').value;
+    const endDate = document.getElementById('endDate').value;
+
+    const bookings = getBookings();
+    for (const b of bookings) {
+      if (!(new Date(endDate) < new Date(b.startDate) || new Date(startDate) > new Date(b.endDate))) {
+        alert(`Overlap with ${b.name}'s booking.`);
+        return;
+      }
+    }
+
+    bookings.push({ name, startDate, endDate });
+    saveBookings(bookings);
+    e.target.reset();
+    renderCalendar();
+  });
+
+  renderCalendar();
+</script>
+
+</body>
+</html>
