@@ -103,29 +103,43 @@
     return `hsl(${hash % 360}, 70%, 60%)`;
   }
 
-  function renderCalendar() {
-    const year = currentDate.getFullYear();
-    const month = currentDate.getMonth();
+function renderCalendar() {
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
 
-    document.getElementById('calendar').innerHTML = `<h2>${currentDate.toLocaleString('default', { month: 'long' })} ${year}</h2>`;
-    const grid = document.createElement('div');
-    grid.className = 'calendar-grid';
+  document.getElementById('calendar').innerHTML = `<h2>${currentDate.toLocaleString('default', { month: 'long' })} ${year}</h2>`;
 
-    const firstDay = new Date(year, month, 1).getDay();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const headerRow = document.createElement('div');
+  headerRow.className = 'calendar-grid';
+  headerRow.style.fontWeight = 'bold';
+  headerRow.style.backgroundColor = '#f8f9fa';
 
-    for (let i = 0; i < firstDay; i++) grid.innerHTML += '<div></div>';
+  daysOfWeek.forEach(day => {
+    headerRow.innerHTML += `<div class="day">${day}</div>`;
+  });
 
-    for (let day = 1; day <= daysInMonth; day++) {
-      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-      const dayBookings = bookings.filter(b => new Date(b.startDate) <= new Date(dateStr) && new Date(b.endDate) >= new Date(dateStr));
+  const grid = document.createElement('div');
+  grid.className = 'calendar-grid';
 
-      grid.innerHTML += `<div class="day"><div class="date">${day}</div>${dayBookings.map(b => `<span class="booked" style="background:${hashColor(b.name)}">${b.name}</span>`).join('')}</div>`;
-    }
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-    document.getElementById('calendar').appendChild(grid);
-    renderBookingList();
+  for (let i = 0; i < firstDay; i++) grid.innerHTML += '<div></div>';
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const dayBookings = bookings.filter(b => new Date(b.startDate) <= new Date(dateStr) && new Date(b.endDate) >= new Date(dateStr));
+
+    grid.innerHTML += `<div class="day"><div class="date">${day}</div>${dayBookings.map(b => `<span class="booked" style="background:${hashColor(b.name)}">${b.name}</span>`).join('')}</div>`;
   }
+
+  const calendar = document.getElementById('calendar');
+  calendar.appendChild(headerRow);
+  calendar.appendChild(grid);
+
+  renderBookingList();
+}
 
   function renderBookingList() {
     const list = document.getElementById('bookingList');
